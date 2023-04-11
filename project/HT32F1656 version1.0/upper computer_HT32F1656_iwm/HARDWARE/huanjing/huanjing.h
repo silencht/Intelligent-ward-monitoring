@@ -1,0 +1,16 @@
+#ifndef __hj_H
+#define __hj_H
+#include "ht32.h"
+#include "ht32_board.h"
+
+void LED_Init(void);   //µÆ
+void LED_handle(void);
+void MQ2_Init(void);//ÑÌÎí1ºÍ2
+u8  MQ2_handle(void);
+void BEEP_Init(void);//·äÃùÆ÷
+u8 BEEP_handle(void);
+void sensor_Init(void);//ºìÍâ
+u8  sensor_handle(void);
+void all_chuli(void);
+
+#endif

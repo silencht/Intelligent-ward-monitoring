@@ -1,0 +1,249 @@
+#include "huanjing.h"
+#include "delay.h"
+#include "ebi_lcd.h"
+u8 sensor_flag=0;
+u8 LED_flag=0;//1234
+u8 beep_flag=0;
+u8 MQ2_flag=0;  
+u8 ren=0;
+//sensor D15   输入为低 检测  为高
+//led  D10-13
+//MQ2  A6  A1    输入为低
+//BEEP  D14
+           void sensor_Init(void)
+            {                
+                CKCU_PeripClockConfig_TypeDef  CKCUClock ={{0}};
+                CKCUClock.Bit.PD =1;
+                CKCUClock.Bit.AFIO=1;
+                CKCUClock.Bit.BKP = 1;
+                CKCU_PeripClockConfig(CKCUClock, ENABLE);
+                HT32F_DVB_GPxConfig(GPIO_PD, GPIO_PIN_15,  AFIO_MODE_DEFAULT);
+               GPIO_DirectionConfig(HT_GPIOD, GPIO_PIN_15, GPIO_DIR_IN); 
+                GPIO_PullResistorConfig(HT_GPIOD, GPIO_PIN_15,GPIO_PR_DOWN);//拉低
+                GPIO_InputConfig(HT_GPIOD, GPIO_PIN_15, ENABLE);                
+                GPIO_ClearOutBits(HT_GPIOD,GPIO_PIN_15);
+               
+               
+               
+            }
+       u8  sensor_handle(void)
+    {
+      if(GPIO_ReadInBit(HT_GPIOD,GPIO_PIN_15)==SET)
+         sensor_flag=1;
+        else
+        sensor_flag= 0;
+        return sensor_flag;
+    }
+        void LED_Init(void)
+    {
+     CKCU_PeripClockConfig_TypeDef  CKCUClock ={{0}};
+        CKCUClock.Bit.PD =1;
+        CKCUClock.Bit.AFIO=1;
+        CKCUClock.Bit.BKP        = 1;
+        CKCU_PeripClockConfig(CKCUClock, ENABLE);
+    HT32F_DVB_GPxConfig(GPIO_PD, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13,  AFIO_MODE_DEFAULT);
+    //AFIO_GPDConfig( GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13, AFIO_MODE_1);
+    GPIO_DirectionConfig(HT_GPIOD, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13, GPIO_DIR_OUT);
+    GPIO_ClearOutBits(HT_GPIOD,GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13);//拉低
+     }
+     //D14 -拉高
+    void BEEP_Init(void)
+    {
+     CKCU_PeripClockConfig_TypeDef  CKCUClock ={{0}};
+        CKCUClock.Bit.PD =1;
+        CKCUClock.Bit.AFIO=1;
+        CKCUClock.Bit.BKP        = 1;
+        CKCU_PeripClockConfig(CKCUClock, ENABLE);
+     HT32F_DVB_GPxConfig(GPIO_PD, GPIO_PIN_14,  AFIO_MODE_DEFAULT);
+     GPIO_DirectionConfig(HT_GPIOD, GPIO_PIN_14, GPIO_DIR_OUT);
+    //GPIO_InputConfig(HT_GPIOD, GPIO_PIN_14, ENABLE);
+     GPIO_PullResistorConfig(HT_GPIOD, GPIO_PIN_14,GPIO_PR_DOWN);//拉低需down//
+     GPIO_ClearOutBits(HT_GPIOD,GPIO_PIN_14);//拉低     
+    }   
+    //A6--拉高
+    void MQ2_Init(void)
+    {
+        CKCU_PeripClockConfig_TypeDef  CKCUClock ={{0}};
+        CKCUClock.Bit.PA =1;
+        CKCUClock.Bit.AFIO=1;
+        CKCUClock.Bit.BKP        = 1;
+        CKCU_PeripClockConfig(CKCUClock, ENABLE);  
+        HT32F_DVB_GPxConfig(GPIO_PA, GPIO_PIN_6| GPIO_PIN_1,  AFIO_MODE_DEFAULT);
+        AFIO_GPAConfig(AFIO_PIN_6| GPIO_PIN_1, AFIO_MODE_1);//AFIO_GPxConfig(GPIO_PA, AFIO_PIN_6, AFIO_MODE_DEFAULT);
+       GPIO_DirectionConfig(HT_GPIOA, GPIO_PIN_6| GPIO_PIN_1, GPIO_DIR_IN);    
+       GPIO_PullResistorConfig(HT_GPIOA, GPIO_PIN_6| GPIO_PIN_1,GPIO_PR_DOWN);
+       GPIO_InputConfig(HT_GPIOA, GPIO_PIN_6| GPIO_PIN_1, ENABLE);
+       GPIO_ClearOutBits(HT_GPIOA,GPIO_PIN_6| GPIO_PIN_1);
+//         GPIO_PullResistorConfig(HT_GPIOA, GPIO_PIN_6,GPIO_PR_UP);
+//       GPIO_InputConfig(HT_GPIOA, GPIO_PIN_6, ENABLE);
+//       GPIO_ClearOutBits(HT_GPIOA,GPIO_PIN_6);
+  
+    }  
+    
+    u8  MQ2_handle(void)
+     {
+        if(GPIO_ReadInBit(HT_GPIOA,GPIO_PIN_6| GPIO_PIN_1)==SET)//
+         MQ2_flag=1;//有烟雾时
+        else
+        MQ2_flag= 0;
+        
+        return MQ2_flag;
+        
+     }
+
+//0 有效  在有人时输出为低电平
+
+//LED D10-13 拉低
+/*
+void LED_handle(void)
+{
+    switch(LED_flag)//高电平有效
+    { 
+    case 1:
+        GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_10);
+    break;
+    case 2:
+         GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_11);
+    break;
+    case 3:
+         GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_12);
+    break;
+    case 4:
+         GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_13);
+    break;
+    }                        
+}
+*/
+
+//烟雾处理
+
+void all_chuli(void)
+{
+	u8 k;//人数
+	if(MQ2_handle()==1)  //环境异常
+	{
+	GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_10);
+	GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_14);//报警
+	POINT_COLOR=RED;             
+	//              LCD_ShowString(115,70,200,16,16," press aid-button");
+	LCD_ShowString(10,180,200,16,16,"Leave The Class");
+	LCD_ShowString(115,150,200,16,16,"fog is unnormal");
+	delay_ms(1000);
+	LCD_Fill(115,150,235,180,LGRAY);   //闪动效果          
+	beep_flag=1; 
+	POINT_COLOR=BLUE;
+	}
+	else
+	{
+	LCD_ShowString(115,150,200,16,16,"fog is normal ");  
+	GPIO_ClearOutBits(HT_GPIOD,GPIO_PIN_14);//关闭报警
+	//              delay_ms(1000);
+	//              LCD_Fill(115,150,235,170,LGRAY);            
+	GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_11);                       
+	}
+
+	if(sensor_handle()==1)
+	{
+	ren++;//人数++
+	GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_12);
+
+	//        LCD_ShowString(10,70,200,16,16,"please press aid-button");
+		
+	}
+	else
+	{
+
+	GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_13);
+
+	}
+	//灯分区亮   把预约位置送入到数组中，做比对？        还要将RC522刷卡加入
+	if(LED_flag==1|LED_flag==2|LED_flag==3|LED_flag==4)
+	{
+	GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_10);//区域1  
+	if(LED_flag==1)
+	{
+	LCD_Fill(7,70,27,90,RED);
+	}   
+	if(LED_flag==2)
+	{
+	LCD_Fill(32,70,52,90,RED);
+	}       
+	if(LED_flag==3)
+	{
+	LCD_Fill(7,95,27,115,RED);
+	}  
+	if(LED_flag==4)
+	{
+	LCD_Fill(32,95,52,115,RED);
+	}             
+
+	}
+	if(LED_flag==5|LED_flag==6|LED_flag==7|LED_flag==8)
+	{
+	GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_11);//区域2 
+	if(LED_flag==5)
+	{
+	LCD_Fill(62,70,82,90,RED);
+	}   
+	if(LED_flag==6)
+	{
+	LCD_Fill(87,70,107,90,RED);
+	}       
+	if(LED_flag==7)
+	{
+	LCD_Fill(62,95,82,115,RED);
+	}  
+	if(LED_flag==8)
+	{
+	LCD_Fill(87,95,107,115,RED);
+	}             
+
+	}
+	if(LED_flag==9|LED_flag==10|LED_flag==11|LED_flag==12)
+	{
+	GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_12);//区域3   
+	if(LED_flag==9)
+	{
+	LCD_Fill(7,125,27,145,RED);
+	}   
+	if(LED_flag==10)
+	{
+	LCD_Fill(32,125,52,145,RED);
+	}       
+	if(LED_flag==11)
+	{
+	LCD_Fill(7,150,27,170,RED);
+	}  
+	if(LED_flag==12)
+	{
+	LCD_Fill(32,150,52,170,RED);
+	}             
+
+	}
+	if(LED_flag==13|LED_flag==14|LED_flag==15|LED_flag==16)
+	{
+	GPIO_SetOutBits(HT_GPIOD,GPIO_PIN_13);//区域4    
+	if(LED_flag==13)
+	{
+	LCD_Fill(62,125,82,145,RED);
+	}   
+	if(LED_flag==14)
+	{
+	LCD_Fill(87,125,107,145,RED);
+	}       
+	if(LED_flag==15)
+	{
+	LCD_Fill(62,150,82,170,RED);
+	}  
+	if(LED_flag==16)
+	{
+	LCD_Fill(87,150,107,170,RED);
+	}             
+
+	}
+
+
+}
+
+
+
